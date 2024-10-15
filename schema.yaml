@@ -1,0 +1,12 @@
+organization: 
+  sbu: text
+  product: text
+  series_id: number
+
+date: date
+engineer: text
+
+complaint:
+  customer: text
+  content: text
+  status: text
