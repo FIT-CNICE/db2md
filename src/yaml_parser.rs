@@ -1,12 +1,11 @@
 use std::error::Error;
 use std::fs::read_to_string;
-use std::io::Read;
 use yaml_rust2::{Yaml, YamlLoader};
 
 pub fn parse_yaml_schema(file_path: &str)
                          -> Result<Yaml, Box<dyn Error>>
 {
-  let mut contents = read_to_string(file_path)?;
+  let contents = read_to_string(file_path)?;
   let docs = YamlLoader::load_from_str(&contents)?;
   Ok(docs[0].clone())
 }

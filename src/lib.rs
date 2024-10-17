@@ -1,7 +1,7 @@
-// pub mod field_mapper;
+pub mod field_mapper;
 // pub mod gui;
 pub mod md_gen;
-// pub mod reader;
+pub mod reader;
 pub mod yaml_parser;
 
 // use std::collections::HashMap;
