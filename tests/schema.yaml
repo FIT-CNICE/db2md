@@ -1,12 +1,7 @@
 organization: 
   sbu: text
   product: text
-  series_id: number
-
 date: date
-engineer: text
-
 complaint:
+  price: text
   customer: text
-  content: text
-  status: text

@@ -1,4 +1,3 @@
-pub mod field_mapper;
 // pub mod gui;
 pub mod md_gen;
 pub mod reader;
