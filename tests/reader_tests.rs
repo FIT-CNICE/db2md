@@ -10,18 +10,11 @@ mod tests
 
     let range =
       read_excel(file_path).expect("Failed to read Excel file");
-    let first_row: Vec<String> = range.rows()
-                                      .into_iter()
-                                      .next()
-                                      .unwrap()
-                                      .into_iter()
-                                      .map(|d| d.to_string())
-                                      .collect();
 
-    assert_eq!(first_row[0], "APPLE");
-    assert_eq!(first_row[1], "red");
-    assert_eq!(first_row[2], "45576");
-    assert_eq!(first_row[3], "3.12");
-    assert_eq!(first_row[4], "California");
+    assert_eq!(range[0][0], "APPLE");
+    assert_eq!(range[1][1], "yellow");
+    assert_eq!(range[2][2], "2024-08-29");
+    assert_eq!(range[3][3], "1.13");
+    assert_eq!(range[4][4], "Virginia");
   }
 }
