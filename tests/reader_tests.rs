@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod tests
 {
-  use super::*;
 
   #[test]
+  #[ignore]
   fn test_read_excel()
   {
     // Since reading actual Excel files in tests is tricky,

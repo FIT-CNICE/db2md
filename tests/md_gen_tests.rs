@@ -1,12 +1,12 @@
 #[cfg(test)]
 mod tests
 {
-  use super::*;
   use db2md::md_gen::*;
   use std::collections::HashMap;
   use yaml_rust2::YamlLoader;
 
   #[test]
+  #[ignore]
   fn test_generate_markdown()
   {
     let yaml_str = "

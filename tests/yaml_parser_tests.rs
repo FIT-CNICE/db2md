@@ -1,31 +1,23 @@
 #[cfg(test)]
 mod tests
 {
-  use std::ascii::AsciiExt;
-
-  use super::*;
   use db2md::yaml_parser::*;
   use yaml_rust2::YamlLoader;
 
   #[test]
-  fn test_parse_yaml_schema()
+  fn test_parse_yaml_schema_from_file()
   {
-    let yaml_str = "
-        organization:
-          sbu: text
-          product: text
-          series_id: number
-        date: date
-        engineer: text
-        complaint:
-          customer: text
-          content: text
-          status: text
-        ";
-    let docs = YamlLoader::load_from_str(yaml_str).unwrap();
-    let schema = &docs[0];
-    assert!(schema["organization"].is_hash());
-    assert!(schema["date"].into_string().unwrap().is_ascii());
+    let yaml_file = "./tests/schema.yaml";
+    if let Ok(schema) = parse_yaml_schema(yaml_file) {
+      assert!(schema["organization"].is_hash());
+      assert!(schema["date"].to_owned()
+                            .into_string()
+                            .unwrap()
+                            .is_ascii());
+    } else {
+      println!("error reading yaml file");
+      assert!(false)
+    }
   }
 
   #[test]

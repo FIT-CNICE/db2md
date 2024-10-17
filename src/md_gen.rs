@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::collections::HashMap;
 use yaml_rust2::Yaml;
 
 pub fn generate_markdown(yaml: &Yaml,
