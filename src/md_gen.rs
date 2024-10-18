@@ -1,43 +1,45 @@
-use std::collections::HashMap;
-use yaml_rust2::Yaml;
+use std::collections::{HashMap, HashSet};
 
-pub fn generate_markdown(yaml: &Yaml,
-                         data_row: &[String],
+pub fn generate_markdown(data_row: &[String],
                          field_map: &HashMap<String, usize>,
-                         level: usize,
-                         prefix: &str,
                          output: &mut String)
 {
-  match yaml {
-    Yaml::Hash(hash) => {
-      for (key, value) in hash {
-        if let Yaml::String(key_str) = key {
-          let heading =
-            format!("{} {}\n\n", "#".repeat(level), key_str);
-          output.push_str(&heading);
-          let new_prefix = if prefix.is_empty() {
-            key_str.clone()
-          } else {
-            format!("{}.{}", prefix, key_str)
-          };
-          generate_markdown(value,
-                            data_row,
-                            field_map,
-                            level + 1,
-                            &new_prefix,
-                            output);
-        }
+  if data_row.len() > field_map.len() {
+    eprintln!("more data than specified fields");
+    return ();
+  } else if data_row.len() < field_map.len() {
+    eprintln!("less data than specified fields");
+    return ();
+  }
+  // sort keys in field_map based on its value (accending)
+  let mut sorted_titles: Vec<&String> = field_map.keys().collect();
+  sorted_titles.sort_by(|&a, &b| {
+                 field_map.get(a)
+                          .unwrap()
+                          .cmp(field_map.get(b).unwrap())
+               });
+  let mut implemented_title: HashSet<&str> = HashSet::new();
+  for &t in sorted_titles.iter() {
+    // get content from each cell, "N/A" by default
+    let default = String::from("N/A");
+    let content = data_row.get(*field_map.get(t).unwrap())
+                          .unwrap_or(&default);
+
+    // prepare section title
+    let sections = t.split('.').collect::<Vec<_>>();
+    for (idx, &s) in sections.iter().enumerate() {
+      if !implemented_title.contains(s) {
+        implemented_title.insert(s);
+        let new_title = format!("{} {}", "#".repeat(idx + 1), s);
+        output.push_str(new_title.as_str());
+        output.push('\n');
+        output.push('\n');
       }
     }
-    Yaml::String(_) => {
-      // It's a field, retrieve data
-      if let Some(&col_index) = field_map.get(prefix) {
-        let value = &data_row[col_index];
-        output.push_str(&format!("{}\n\n", value));
-      } else {
-        output.push_str("\n\n");
-      }
-    }
-    _ => {}
+
+    // append corresponding content
+    output.push_str((*content).as_str());
+    output.push('\n');
+    output.push('\n');
   }
 }
