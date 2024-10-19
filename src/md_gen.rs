@@ -18,7 +18,8 @@ pub fn generate_markdown(data_row: &[String],
                           .unwrap()
                           .cmp(field_map.get(b).unwrap())
                });
-  let mut implemented_title: HashSet<&str> = HashSet::new();
+  let mut implemented_title: HashSet<String> = HashSet::new();
+  let mut current_path = Vec::new();
   for &t in sorted_titles.iter() {
     // get content from each cell, "N/A" by default
     let default = String::from("N/A");
@@ -28,12 +29,15 @@ pub fn generate_markdown(data_row: &[String],
     // prepare section title
     let sections = t.split('.').collect::<Vec<_>>();
     for (idx, &s) in sections.iter().enumerate() {
-      if !implemented_title.contains(s) {
-        implemented_title.insert(s);
+      current_path.truncate(idx);
+      current_path.push(s);
+      let path_str = current_path.join(".");
+      if !implemented_title.contains(&path_str) {
+        // return owned values to solve lifetime issue
+        implemented_title.insert(path_str.to_owned());
         let new_title = format!("{} {}", "#".repeat(idx + 1), s);
-        output.push_str(new_title.as_str());
-        output.push('\n');
-        output.push('\n');
+        output.push_str(&new_title);
+        output.push_str("\n\n");
       }
     }
 
