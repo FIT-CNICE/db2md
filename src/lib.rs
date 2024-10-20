@@ -3,7 +3,7 @@ pub mod md_gen;
 pub mod reader;
 pub mod yaml_parser;
 
-use std::sync::{mpsc, Arc, Mutex};
+use std::sync::{Arc, Mutex};
 use std::thread;
 
 pub fn process_data(excel_path: &str,

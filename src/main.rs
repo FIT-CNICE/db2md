@@ -1,14 +1,29 @@
-// use db2md::gui::Db2Md;
-// use iced::Theme;
+#![allow(non_snake_case)]
 
-fn main() // -> iced::Result
+use dioxus::prelude::*;
+use dioxus_logger::tracing::{info, Level};
+
+fn main()
 {
-  // let app = Db2Md::new();
-  // iced::application(app.title(), Db2Md::update,
-  // Db2Md::view).theme(|_| {
-  // Theme::Dark
-  // })
-  // .centered()
-  // .run()
-  println!("db2md tba");
+  // Init logger
+  dioxus_logger::init(Level::INFO).expect("failed to init logger");
+  info!("starting app");
+
+  let cfg = dioxus::desktop::Config::new().with_custom_head(r#"<link rel="stylesheet" href="tailwind.css">"#.to_string());
+  LaunchBuilder::desktop().with_cfg(cfg).launch(App);
+}
+
+#[component]
+fn App() -> Element
+{
+  rsx! {
+      link { rel: "stylesheet", href: "assets/main.css" }
+      img { src: "assets/header.svg", id: "header" }
+      div { id: "links",
+          a { href: "https://dioxuslabs.com/learn/0.5/", "📚 Learn Dioxus" }
+          a { href: "https://dioxuslabs.com/awesome", "🚀 Awesome Dioxus" }
+          a { href: "https://github.com/DioxusLabs/dioxus-std", "⚙️ Dioxus Standard Library" }
+          a { href: "https://discord.gg/XgGxMSkvUM", "👋 Community Discord" }
+      }
+  }
 }
