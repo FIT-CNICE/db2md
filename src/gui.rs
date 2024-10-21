@@ -19,3 +19,31 @@ pub fn FilePrefixSetter(md_prefix: Signal<String>) -> Element
       }
   }
 }
+
+#[component]
+pub fn HeaderChecker(has_header: Signal<bool>) -> Element
+{
+  rsx! {
+      div {
+         span { class: "px-2 mr-5", "First-row Header?" }
+         input {
+           r#type:"radio",
+           class:"peer px-2 h-5 w-5 cursor-pointer transition-all appearance-none rounded shadow hover:shadow-md border border-slate-300 checked:bg-blue-600 checked:border-blue-600",
+           id:"has-header",
+           name:"options",
+           value:"true",
+           onclick: move |_evt| {has_header.set(true)}
+         }
+         span { class: "px-2 mr-5", "Yes" }
+         input {
+           r#type:"radio",
+           class:"peer px-2 h-5 w-5 cursor-pointer transition-all appearance-none rounded shadow hover:shadow-md border border-slate-300 checked:bg-blue-600 checked:border-blue-600",
+           id:"no-header",
+           name:"options",
+           value:"false",
+           onclick: move |_evt| {has_header.set(false)}
+         }
+         span { class: "px-2 mr-5", "No" }
+      }
+  }
+}

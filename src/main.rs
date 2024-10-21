@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-use db2md::gui::FilePrefixSetter;
+use db2md::gui::{FilePrefixSetter, HeaderChecker};
 use dioxus::prelude::*;
 use dioxus_logger::tracing::{info, Level};
 
@@ -36,6 +36,7 @@ fn App() -> Element
                 "{md_prefix}"
               }
           }
+          HeaderChecker{ has_header }
       }
   }
 }
