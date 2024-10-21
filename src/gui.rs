@@ -1,5 +1,4 @@
 use dioxus::prelude::*;
-use dioxus::signals::*;
 
 #[component]
 pub fn FilePrefixSetter(md_prefix: Signal<String>) -> Element
@@ -7,7 +6,7 @@ pub fn FilePrefixSetter(md_prefix: Signal<String>) -> Element
   let mut input_value = use_signal(|| md_prefix());
   rsx! {
       div {
-          span { "Your File Prefix: " }
+          span { class: "px-2", "Your File Prefix: " }
           input {
               class: "bg-gray-700 text-white border border-gray-700 rounded px-3 py-2 mx-2",
               value: "{input_value}",

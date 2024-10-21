@@ -16,12 +16,12 @@ fn main()
 #[component]
 fn App() -> Element
 {
-  let mut file_path =
+  let file_path =
     use_signal(|| "please provide a path to data file".to_string());
-  let mut yaml_path =
+  let yaml_path =
     use_signal(|| "please provide a path to yaml schema".to_string());
-  let mut has_header = use_signal(|| true);
-  let mut md_prefix: Signal<String> =
+  let has_header = use_signal(|| true);
+  let md_prefix: Signal<String> =
     use_signal(|| "ccms-doc".to_string());
   rsx! {
       link { rel: "stylesheet", href: "assets/main.css" }
@@ -29,7 +29,13 @@ fn App() -> Element
       img { src: "assets/header.svg", id: "header" }
       div { id: "content",
           FilePrefixSetter{ md_prefix }
-          div { "MD filename prefix is set to: {md_prefix}" }
+          div {
+              span{ class: "px-2", "MD filename prefix is set to: "}
+              span{
+                class: "px-2 text-red-500 font-bold",
+                "{md_prefix}"
+              }
+          }
       }
   }
 }
