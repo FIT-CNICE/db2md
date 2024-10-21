@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-
+use db2md::gui::FilePrefixSetter;
 use dioxus::prelude::*;
 use dioxus_logger::tracing::{info, Level};
 
@@ -16,14 +16,20 @@ fn main()
 #[component]
 fn App() -> Element
 {
+  let mut file_path =
+    use_signal(|| "please provide a path to data file".to_string());
+  let mut yaml_path =
+    use_signal(|| "please provide a path to yaml schema".to_string());
+  let mut has_header = use_signal(|| true);
+  let mut md_prefix: Signal<String> =
+    use_signal(|| "ccms-doc".to_string());
   rsx! {
       link { rel: "stylesheet", href: "assets/main.css" }
+      link { rel: "stylesheet", href: "assets/tailwind.css" }
       img { src: "assets/header.svg", id: "header" }
-      div { id: "links",
-          a { href: "https://dioxuslabs.com/learn/0.5/", "📚 Learn Dioxus" }
-          a { href: "https://dioxuslabs.com/awesome", "🚀 Awesome Dioxus" }
-          a { href: "https://github.com/DioxusLabs/dioxus-std", "⚙️ Dioxus Standard Library" }
-          a { href: "https://discord.gg/XgGxMSkvUM", "👋 Community Discord" }
+      div { id: "content",
+          FilePrefixSetter{ md_prefix }
+          div { "MD filename prefix is set to: {md_prefix}" }
       }
   }
 }

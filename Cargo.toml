@@ -13,3 +13,4 @@ rfd = "0.15.0"
 yaml-rust2 = "0.9.0"
 dioxus = { version = "0.5", features = ["desktop"] }
 dioxus-logger = "0.5.1"
+manganis = "0.2.2"
