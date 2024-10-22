@@ -26,8 +26,9 @@ pub fn process_data(excel_path: &str,
                     -> Result<(), Box<dyn std::error::Error>>
 {
   // Read Excel and YAML files
-  let rows = reader::read_excel(excel_path)?;
-  let tot_row_num = rows.len() as f32;
+  let mut rows: Vec<Vec<String>> = vec![];
+  let meta = reader::read_excel(excel_path, &mut rows)?;
+  let tot_row_num = meta.1 as f32;
   let schema = yaml_parser::parse_yaml_schema(yaml_path)?;
 
   // Extract fields and map to columns

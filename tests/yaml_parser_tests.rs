@@ -66,7 +66,8 @@ mod tests
   fn test_field_map_with_header()
   {
     let xslx = "./tests/fruit_test.xlsx";
-    let sheet = read_excel(xslx).unwrap();
+    let mut sheet = vec![];
+    read_excel(xslx, &mut sheet).unwrap();
     let headers = &sheet[0];
     let fields = vec!["product.APPLE".to_string(),
                       "product.color.red".to_string(),

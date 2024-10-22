@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-use db2md::gui::{FilePrefixSetter, HeaderChecker};
+use db2md::gui::{FileLoader, FilePrefixSetter, HeaderChecker};
 use dioxus::prelude::*;
 use dioxus_logger::tracing::{info, Level};
 
@@ -9,23 +9,27 @@ fn main()
   dioxus_logger::init(Level::INFO).expect("failed to init logger");
   info!("starting app");
 
-  let cfg = dioxus::desktop::Config::new().with_custom_head(r#"<link rel="stylesheet" href="tailwind.css">"#.to_string());
+  let cfg = dioxus::desktop::Config::new().with_custom_head(r#"<link rel="stylesheet" href="assets/tailwind.css">"#.to_string());
   LaunchBuilder::desktop().with_cfg(cfg).launch(App);
 }
 
 #[component]
 fn App() -> Element
 {
-  let file_path =
-    use_signal(|| "please provide a path to data file".to_string());
-  let yaml_path =
-    use_signal(|| "please provide a path to yaml schema".to_string());
+  // file-relevant signals
+  let file_path = use_signal(|| "No File Selected".to_string());
+  let table_meta = use_signal(|| (String::from(""), 0, 0));
+  let data_mtx: Signal<Vec<Vec<String>>> = use_signal(|| Vec::new());
   let has_header = use_signal(|| true);
+
+  // shcema-relevant signals
+  let _yaml_path = use_signal(|| "No Yaml Selected".to_string());
+
+  // md-relevant signals
   let md_prefix: Signal<String> =
     use_signal(|| "ccms-doc".to_string());
   rsx! {
       link { rel: "stylesheet", href: "assets/main.css" }
-      link { rel: "stylesheet", href: "assets/tailwind.css" }
       img { src: "assets/header.svg", id: "header" }
       div { id: "content",
           FilePrefixSetter{ md_prefix }
@@ -37,6 +41,7 @@ fn App() -> Element
               }
           }
           HeaderChecker{ has_header }
+          FileLoader { file_path, table_meta, data_mtx }
       }
   }
 }

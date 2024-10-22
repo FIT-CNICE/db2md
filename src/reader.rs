@@ -1,7 +1,11 @@
 use calamine::{open_workbook, Data, Reader, Xlsx};
 use chrono::format::strftime::StrftimeItems;
 
-pub fn read_excel(file_path: &str) -> Result<Vec<Vec<String>>, &str>
+// Write data to a 2D string vector
+// return string name, tot row/col numbers
+pub fn read_excel(file_path: &str,
+                  sheet: &mut Vec<Vec<String>>)
+                  -> Result<(String, usize, usize), String>
 {
   let mut workbook: Xlsx<_> =
     open_workbook(file_path).expect("db2md: cannot open given xlsx \
@@ -9,14 +13,14 @@ pub fn read_excel(file_path: &str) -> Result<Vec<Vec<String>>, &str>
   let sheet_name = workbook.sheet_names()[0].to_owned();
   if let Ok(range) = workbook.worksheet_range(&sheet_name) {
     let row_number = range.get_size().0;
+    let col_number = range.get_size().1;
     println!("db2md: found {row_number} rows in {sheet_name}");
-    let mut sheet = vec![];
     for row in range.rows().into_iter() {
       sheet.push(parse_row(row));
     }
-    return Ok(sheet);
+    return Ok((sheet_name, row_number, col_number));
   }
-  Err("db2md: cannot read the sheet")
+  Err("db2md: cannot read the sheet".to_string())
 }
 
 fn parse_row(row: &[Data]) -> Vec<String>

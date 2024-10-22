@@ -7,9 +7,14 @@ mod tests
   fn test_read_excel()
   {
     let file_path = "./tests/fruit_test.xlsx";
+    let mut range: Vec<Vec<String>> = vec![];
 
-    let range =
-      read_excel(file_path).expect("Failed to read Excel file");
+    let meta =
+      read_excel(file_path, &mut range).expect("Failed to read \
+                                                Excel file");
+
+    assert_eq!(meta.1, 5);
+    assert_eq!(meta.2, 5);
 
     assert_eq!(range[0][0], "APPLE");
     assert_eq!(range[1][1], "yellow");
