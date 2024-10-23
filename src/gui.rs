@@ -4,22 +4,30 @@ use iced::widget::{
   checkbox::Icon,
   column, container, progress_bar, row, text,
   text::{LineHeight, Shaping},
-  text_input, Svg,
+  text_input, Space, Svg,
 };
 use iced::{Alignment, Element, Font, Length};
 use iced::{Application, Command};
 use rfd::AsyncFileDialog;
+
+use crate::reader::read_excel;
+use crate::yaml_parser::*;
+use std::collections::HashMap;
 
 // State management
 #[derive(Debug)]
 pub struct Db2MdApp
 {
   selected_file: Option<String>,
+  selected_yaml: Option<String>,
   has_header: bool,
   file_prefix: String,
   progress: f32,
+  sheet_name: Option<String>,
   rows_loaded: Option<usize>,
+  cols_loaded: Option<usize>,
   data_matrix: Vec<Vec<String>>,
+  yaml_fields: HashMap<String, usize>,
   is_loading: bool,
 }
 
@@ -30,11 +38,14 @@ pub enum Message
   SelectFile,
   FileSelected(Option<String>),
   LoadFile,
+  SelectYaml,
+  YamlSelected(Option<String>),
+  LoadYaml,
   SetHasHeader(bool),
   SetFilePrefix(String),
   Convert,
   UpdateProgress(f32),
-  RowsLoaded(usize),
+  RowsLoaded,
 }
 
 impl Default for Db2MdApp
@@ -42,11 +53,15 @@ impl Default for Db2MdApp
   fn default() -> Self
   {
     Self { selected_file: None,
+           selected_yaml: None,
            has_header: false,
            file_prefix: String::from("ccms-doc"),
            progress: 0.0,
+           sheet_name: None,
            rows_loaded: None,
+           cols_loaded: None,
            data_matrix: Vec::new(),
+           yaml_fields: HashMap::new(),
            is_loading: false }
   }
 }
@@ -71,8 +86,6 @@ impl Application for Db2MdApp
   fn theme(&self) -> iced::Theme
   {
     iced::Theme::CatppuccinMacchiato
-    // or
-    // iced::Theme::Light
   }
 
   fn update(&mut self,
@@ -91,34 +104,96 @@ impl Application for Db2MdApp
                          },
                          Message::FileSelected)
       }
+
       Message::FileSelected(path) => {
         self.selected_file = path;
         Command::none()
       }
+
       Message::LoadFile => {
-        self.is_loading = true;
-        // Simulate file loading - replace with actual xlsx
-        // loading
+        if self.selected_file.is_none() {
+          return Command::none();
+        } else {
+          self.is_loading = true;
+          // loading
+          let mut data = vec![];
+          let meta =
+            read_excel(self.selected_file.as_ref().unwrap(),
+                       &mut data).unwrap_or((String::from("N/A"),
+                                             0,
+                                             0));
+          self.data_matrix = data;
+          self.rows_loaded = Some(meta.1);
+          self.cols_loaded = Some(meta.2);
+          self.sheet_name = Some(meta.0);
+          Command::perform(async {}, |_| Message::RowsLoaded)
+        }
+      }
+
+      Message::SelectYaml => {
+        // Launch file dialog
+        Command::perform(async {
+                           AsyncFileDialog::new()
+                            .add_filter("Yaml", &["yaml"])
+                            .pick_file()
+                            .await
+                            .map(|file| file.path().to_string_lossy().into_owned())
+                         },
+                         Message::YamlSelected)
+      }
+
+      Message::YamlSelected(path) => {
+        self.selected_yaml = path;
         Command::none()
       }
+
+      Message::LoadYaml => {
+        if self.selected_yaml.is_none() {
+          return Command::none();
+        } else {
+          // loading
+          if let Some(yml) =
+            parse_yaml_schema(self.selected_yaml.as_ref().unwrap())
+          {
+            let mut yaml_fields_raw = vec![];
+            extract_fields(yml, "", &mut yaml_fields_raw);
+
+            let headers = if self.has_header {
+              self.data_matrix.first().unwrap()
+            } else {
+              &Vec::new()
+            };
+            self.yaml_fields =
+              map_fields_to_columns(yaml_fields_raw.as_ref(),
+                                    headers);
+            return Command::none();
+          } else {
+            return Command::none();
+          }
+        }
+      }
+
       Message::SetHasHeader(value) => {
         self.has_header = value;
         Command::none()
       }
+
       Message::SetFilePrefix(value) => {
         self.file_prefix = value;
         Command::none()
       }
+
       Message::Convert => {
         self.progress = 0.0;
         Command::none()
       }
+
       Message::UpdateProgress(value) => {
         self.progress = value;
         Command::none()
       }
-      Message::RowsLoaded(rows) => {
-        self.rows_loaded = Some(rows);
+
+      Message::RowsLoaded => {
         self.is_loading = false;
         Command::none()
       }
@@ -130,23 +205,47 @@ impl Application for Db2MdApp
     let header = Svg::from_path("./assets/header.svg");
 
     let path_text = if let Some(path) = self.selected_file.clone() {
-      text(format!("{} selected", path))
+      text(format!("{}", path))
     } else {
       text("Nothing selected")
     };
 
     let file_selection =
       row![button("Select XLSX file").on_press(Message::SelectFile),
-           path_text,
-           button("Load").on_press(Message::LoadFile)].width(Length::Fill).align_items(Alignment::Center);
+           Space::with_width(10), path_text, Space::with_width(Length::Fill),
+           button("Load").on_press(Message::LoadFile)].align_items(Alignment::Center);
 
     let rows_info = if let Some(rows) = self.rows_loaded {
-      text(format!("Loaded {} rows", rows))
+      let cols = self.cols_loaded.as_ref().unwrap();
+      let sheet = self.sheet_name.as_ref().unwrap();
+      text(format!("Loaded {} rows of {} strings in {}",
+                   rows, cols, sheet))
     } else if self.is_loading {
       text("Loading...")
     } else {
-      text("Shown how many rows loaded once loading(sync) is \
-            complete")
+      text(" ")
+    };
+
+    let yaml_path = if let Some(path) = self.selected_yaml.clone() {
+      text(format!("{}", path))
+    } else {
+      text("Nothing selected")
+    };
+
+    let yaml_selection =
+      row![button("Select YAML file").on_press(Message::SelectYaml),
+           Space::with_width(10), path_text, Space::with_width(Length::Fill),
+           button("Load").on_press(Message::LoadYaml)].align_items(Alignment::Center);
+
+    let rows_info = if let Some(rows) = self.rows_loaded {
+      let cols = self.cols_loaded.as_ref().unwrap();
+      let sheet = self.sheet_name.as_ref().unwrap();
+      text(format!("Loaded {} rows of {} strings in {}",
+                   rows, cols, sheet))
+    } else if self.is_loading {
+      text("Loading...")
+    } else {
+      text(" ")
     };
 
     let header_selection = row![text("Has header?"),
@@ -154,7 +253,7 @@ impl Application for Db2MdApp
                                    Message::SetHasHeader(true)
                                  }).icon(Icon {
                     font: Font::DEFAULT,
-                    code_point: '*',
+                    code_point: '\u{2705}',
                     size: None,
                     line_height: LineHeight::default(),
                     shaping: Shaping::default()
@@ -163,7 +262,7 @@ impl Application for Db2MdApp
                                   Message::SetHasHeader(false)
                                  }).icon(Icon {
                     font: Font::DEFAULT,
-                    code_point: '*',
+                    code_point: '\u{2705}',
                     size: None,
                     line_height: LineHeight::default(),
                     shaping: Shaping::default()
@@ -186,9 +285,9 @@ impl Application for Db2MdApp
         .align_items(Alignment::Center);
 
     container(column![header,
+                      header_selection,
                       file_selection,
                       rows_info,
-                      header_selection,
                       prefix_input,
                       progress,].spacing(20)
                                 .padding(20)).center_x()
