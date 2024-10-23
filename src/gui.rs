@@ -1,21 +1,25 @@
 use iced::theme::Theme;
 use iced::widget::{
-  button, checkbox, column, container, progress_bar, row, text,
+  button, checkbox,
+  checkbox::Icon,
+  column, container, progress_bar, row, text,
+  text::{LineHeight, Shaping},
   text_input, Svg,
 };
-use iced::{Alignment, Element};
+use iced::{Alignment, Element, Font, Length};
 use iced::{Application, Command};
 use rfd::AsyncFileDialog;
 
 // State management
-#[derive(Debug, Default)]
-pub struct XlsxConverterApp
+#[derive(Debug)]
+pub struct Db2MdApp
 {
   selected_file: Option<String>,
   has_header: bool,
   file_prefix: String,
   progress: f32,
   rows_loaded: Option<usize>,
+  data_matrix: Vec<Vec<String>>,
   is_loading: bool,
 }
 
@@ -33,7 +37,21 @@ pub enum Message
   RowsLoaded(usize),
 }
 
-impl Application for XlsxConverterApp
+impl Default for Db2MdApp
+{
+  fn default() -> Self
+  {
+    Self { selected_file: None,
+           has_header: false,
+           file_prefix: String::from("ccms-doc"),
+           progress: 0.0,
+           rows_loaded: None,
+           data_matrix: Vec::new(),
+           is_loading: false }
+  }
+}
+
+impl Application for Db2MdApp
 {
   type Message = Message;
   type Theme = Theme;
@@ -47,7 +65,14 @@ impl Application for XlsxConverterApp
 
   fn title(&self) -> String
   {
-    String::from("XLSX Converter")
+    String::from("db2md")
+  }
+
+  fn theme(&self) -> iced::Theme
+  {
+    iced::Theme::CatppuccinMacchiato
+    // or
+    // iced::Theme::Light
   }
 
   fn update(&mut self,
@@ -104,11 +129,16 @@ impl Application for XlsxConverterApp
   {
     let header = Svg::from_path("./assets/header.svg");
 
-    let file_selection = row![
-            button("Select XLSX file (rfd)").on_press(Message::SelectFile),
-            button("Load").on_press(Message::LoadFile)
-        ]
-        .spacing(10);
+    let path_text = if let Some(path) = self.selected_file.clone() {
+      text(format!("{} selected", path))
+    } else {
+      text("Nothing selected")
+    };
+
+    let file_selection =
+      row![button("Select XLSX file").on_press(Message::SelectFile),
+           path_text,
+           button("Load").on_press(Message::LoadFile)].width(Length::Fill).align_items(Alignment::Center);
 
     let rows_info = if let Some(rows) = self.rows_loaded {
       text(format!("Loaded {} rows", rows))
@@ -120,13 +150,25 @@ impl Application for XlsxConverterApp
     };
 
     let header_selection = row![text("Has header?"),
-           checkbox("Yes", false).on_toggle(|_| {
+           checkbox("Yes", self.has_header).on_toggle(|_| {
                                    Message::SetHasHeader(true)
-                                 }),
-           checkbox("No", false).on_toggle(|_| {
+                                 }).icon(Icon {
+                    font: Font::DEFAULT,
+                    code_point: '*',
+                    size: None,
+                    line_height: LineHeight::default(),
+                    shaping: Shaping::default()
+                }),
+           checkbox("No", !self.has_header).on_toggle(|_| {
                                   Message::SetHasHeader(false)
-                                })].spacing(10)
-                                   .align_items(Alignment::Center);
+                                 }).icon(Icon {
+                    font: Font::DEFAULT,
+                    code_point: '*',
+                    size: None,
+                    line_height: LineHeight::default(),
+                    shaping: Shaping::default()
+                })].spacing(10)
+                           .align_items(Alignment::Center);
 
     let prefix_input = row![
             text("Prefix for generated files"),

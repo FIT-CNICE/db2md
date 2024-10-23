@@ -1,8 +1,8 @@
 #![allow(non_snake_case)]
-use db2md::gui::XlsxConverterApp;
+use db2md::gui::Db2MdApp;
 use iced::{Application, Settings};
 
 fn main() -> iced::Result
 {
-  XlsxConverterApp::run(Settings::default())
+  Db2MdApp::run(Settings::default())
 }
