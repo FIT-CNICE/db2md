@@ -37,7 +37,10 @@ pub fn extract_fields(yaml: &Yaml,
 }
 
 pub fn map_fields_to_columns(fields: &[String],
-                             headers: &[String])
+                             headers: &[String],
+                             // fields not found in headers are
+                             // invalid
+                             invalid_fields: &mut Vec<String>)
                              -> HashMap<String, usize>
 {
   let mut mapping = HashMap::new();
@@ -53,8 +56,7 @@ pub fn map_fields_to_columns(fields: &[String],
       {
         mapping.insert(field.clone(), index);
       } else {
-        println!("Warning: Field '{}' not found in Excel headers",
-                 field_name);
+        invalid_fields.push(field.clone())
       }
     }
   }

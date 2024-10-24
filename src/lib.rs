@@ -3,8 +3,37 @@ pub mod md_gen;
 pub mod reader;
 pub mod yaml_parser;
 
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::thread;
+
+pub fn write_row_to_md(row: &Vec<String>,
+                       field_map: &HashMap<String, usize>,
+                       file_idx: usize,
+                       output_dir: &String,
+                       md_prefix: &String)
+                       -> usize
+{
+  let mut md_string = String::new();
+  md_gen::generate_markdown(row, field_map, &mut md_string);
+  // generate filename
+  let output_path = std::path::Path::new(output_dir);
+  if !output_path.exists() {
+    if let Err(e) = std::fs::create_dir_all(output_path) {
+      eprintln!("Failed to create directory '{}': {}",
+                output_dir, e);
+      return 0usize;
+    }
+  }
+  let filename =
+    format!("{}/{}-{:03}.md", output_dir, md_prefix, file_idx);
+  // write md file
+  if let Err(e) = std::fs::write(&filename, md_string) {
+    eprintln!("Failed to write file '{}': {}", filename, e);
+    return 0usize;
+  }
+  1usize
+}
 
 pub fn process_data(excel_path: &str,
                     yaml_path: &str,
@@ -41,8 +70,11 @@ pub fn process_data(excel_path: &str,
     headers = &rows[0];
   }
 
-  let field_map =
-    yaml_parser::map_fields_to_columns(&fields, headers);
+  let mut invalids = vec![];
+
+  let field_map = yaml_parser::map_fields_to_columns(&fields,
+                                                     headers,
+                                                     &mut invalids);
 
   // Process data rows concurrently
   let processed_rows = Arc::new(Mutex::new(0));

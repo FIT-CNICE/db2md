@@ -51,7 +51,9 @@ mod tests
       let mut fields = Vec::new();
       extract_fields(&schema, "", &mut fields);
       let headers = Vec::new();
-      let hmap = map_fields_to_columns(&fields, &headers);
+      let mut invalids = vec![];
+      let hmap =
+        map_fields_to_columns(&fields, &headers, &mut invalids);
       assert_eq!(hmap["organization.sbu"], 0usize);
       assert_eq!(hmap["organization.product"], 1usize);
       assert_eq!(hmap["date"], 2usize);
@@ -74,7 +76,8 @@ mod tests
                       "2024-10-11".to_string(),
                       "312".to_string(),
                       "California".to_string()];
-    let hmap = map_fields_to_columns(&fields, headers);
+    let mut invalids = vec![];
+    let hmap = map_fields_to_columns(&fields, headers, &mut invalids);
     assert_eq!(hmap["product.APPLE"],
                headers.iter()
                       .position(|h| h.as_str() == "APPLE")

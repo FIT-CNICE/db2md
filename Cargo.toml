@@ -8,7 +8,7 @@ edition = "2021"
 
 [dependencies]
 calamine = { version = "0.26.1", features = ["dates"] }
-chrono = "0.4.38"
 iced = { version = "0.12.1", default-features = false, features = ["svg"] }
+chrono = "0.4.38"
 rfd = "0.15.0"
 yaml-rust2 = "0.9.0"

@@ -4,13 +4,6 @@ pub fn generate_markdown(data_row: &[String],
                          field_map: &HashMap<String, usize>,
                          output: &mut String)
 {
-  if data_row.len() > field_map.len() {
-    eprintln!("more data than specified fields");
-    return ();
-  } else if data_row.len() < field_map.len() {
-    eprintln!("less data than specified fields");
-    return ();
-  }
   // sort keys in field_map based on its value (accending)
   let mut sorted_titles: Vec<&String> = field_map.keys().collect();
   sorted_titles.sort_by(|&a, &b| {
