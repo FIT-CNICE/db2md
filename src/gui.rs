@@ -152,11 +152,11 @@ impl Application for Db2MdApp
           return Command::none();
         } else {
           // loading
-          if let Some(yml) =
+          if let Ok(yml) =
             parse_yaml_schema(self.selected_yaml.as_ref().unwrap())
           {
             let mut yaml_fields_raw = vec![];
-            extract_fields(yml, "", &mut yaml_fields_raw);
+            extract_fields(&yml, "", &mut yaml_fields_raw);
 
             let headers = if self.has_header {
               self.data_matrix.first().unwrap()
@@ -166,10 +166,8 @@ impl Application for Db2MdApp
             self.yaml_fields =
               map_fields_to_columns(yaml_fields_raw.as_ref(),
                                     headers);
-            return Command::none();
-          } else {
-            return Command::none();
           }
+          return Command::none();
         }
       }
 
@@ -229,23 +227,31 @@ impl Application for Db2MdApp
     let yaml_path = if let Some(path) = self.selected_yaml.clone() {
       text(format!("{}", path))
     } else {
-      text("Nothing selected")
+      text("No schema selected")
     };
 
     let yaml_selection =
       row![button("Select YAML file").on_press(Message::SelectYaml),
-           Space::with_width(10), path_text, Space::with_width(Length::Fill),
+           Space::with_width(10), yaml_path, Space::with_width(Length::Fill),
            button("Load").on_press(Message::LoadYaml)].align_items(Alignment::Center);
 
-    let rows_info = if let Some(rows) = self.rows_loaded {
+    let yaml_info = if self.yaml_fields.len() > 0 {
       let cols = self.cols_loaded.as_ref().unwrap();
-      let sheet = self.sheet_name.as_ref().unwrap();
-      text(format!("Loaded {} rows of {} strings in {}",
-                   rows, cols, sheet))
-    } else if self.is_loading {
-      text("Loading...")
+      let field_num = self.yaml_fields.len();
+      if field_num > *cols {
+        text(format!("Find {} fields but each row has {} columns, \
+                      only first {} fields will be used",
+                     field_num, cols, cols))
+      } else if field_num < *cols {
+        text(format!("Find {} fields but each row has {} columns, \
+                      only first {} columns will be used",
+                     field_num, cols, field_num))
+      } else {
+        text("All fields found in selected yaml will be used to \
+              generate MD")
+      }
     } else {
-      text(" ")
+      text("No Field Loaded")
     };
 
     let header_selection = row![text("Has header?"),
@@ -288,6 +294,8 @@ impl Application for Db2MdApp
                       header_selection,
                       file_selection,
                       rows_info,
+                      yaml_selection,
+                      yaml_info,
                       prefix_input,
                       progress,].spacing(20)
                                 .padding(20)).center_x()
