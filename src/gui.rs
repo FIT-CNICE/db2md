@@ -1,4 +1,3 @@
-use iced::theme::Theme;
 use iced::widget::{
   button, checkbox,
   checkbox::Icon,
@@ -6,8 +5,7 @@ use iced::widget::{
   text::{LineHeight, Shaping},
   text_input, Space, Svg,
 };
-use iced::{Alignment, Color, Element, Font, Length};
-use iced::{Application, Command};
+use iced::{Alignment, Color, Element, Fill, Font, Length, Task};
 use rfd::AsyncFileDialog;
 
 use crate::reader::read_excel;
@@ -77,53 +75,47 @@ impl Default for Db2MdApp
   }
 }
 
-impl Application for Db2MdApp
+impl Db2MdApp
 {
-  type Message = Message;
-  type Theme = Theme;
-  type Executor = iced::executor::Default;
-  type Flags = ();
-
-  fn new(_flags: ()) -> (Self, Command<Message>)
-  {
-    (Self::default(), Command::none())
-  }
-
-  fn title(&self) -> String
+  pub fn title(&self) -> String
   {
     String::from("db2md")
   }
 
-  fn theme(&self) -> iced::Theme
+  pub fn theme(&self) -> iced::Theme
   {
     iced::Theme::CatppuccinMacchiato
   }
 
-  fn update(&mut self,
-            message: Message)
-            -> Command<Message>
+  pub fn update(&mut self,
+                message: Message)
+                -> Task<Message>
   {
     match message {
       Message::SelectFile => {
         // Launch file dialog
-        Command::perform(async {
-                           AsyncFileDialog::new()
-                            .add_filter("Excel", &["xlsx"])
-                            .pick_file()
-                            .await
-                            .map(|file| file.path().to_string_lossy().into_owned())
-                         },
-                         Message::FileSelected)
+        Task::perform(async {
+                        AsyncFileDialog::new().add_filter("Excel",
+                                                          &["xlsx"])
+                                              .pick_file()
+                                              .await
+                                              .map(|file| {
+                                                file.path()
+                                                    .to_string_lossy()
+                                                    .into_owned()
+                                              })
+                      },
+                      Message::FileSelected)
       }
 
       Message::FileSelected(path) => {
         self.selected_file = path;
-        Command::none()
+        Task::none()
       }
 
       Message::LoadFile => {
         if self.selected_file.is_none() {
-          return Command::none();
+          return Task::none();
         } else {
           self.is_loading = true;
           // loading
@@ -137,30 +129,34 @@ impl Application for Db2MdApp
           self.rows_loaded = Some(meta.1);
           self.cols_loaded = Some(meta.2);
           self.sheet_name = Some(meta.0);
-          Command::perform(async {}, |_| Message::RowsLoaded)
+          Task::perform(async {}, |_| Message::RowsLoaded)
         }
       }
 
       Message::SelectYaml => {
         // Launch file dialog
-        Command::perform(async {
-                           AsyncFileDialog::new()
-                            .add_filter("Yaml", &["yaml"])
-                            .pick_file()
-                            .await
-                            .map(|file| file.path().to_string_lossy().into_owned())
-                         },
-                         Message::YamlSelected)
+        Task::perform(async {
+                        AsyncFileDialog::new().add_filter("Yaml",
+                                                          &["yaml"])
+                                              .pick_file()
+                                              .await
+                                              .map(|file| {
+                                                file.path()
+                                                    .to_string_lossy()
+                                                    .into_owned()
+                                              })
+                      },
+                      Message::YamlSelected)
       }
 
       Message::YamlSelected(path) => {
         self.selected_yaml = path;
-        Command::none()
+        Task::none()
       }
 
       Message::LoadYaml => {
         if self.selected_yaml.is_none() {
-          return Command::none();
+          return Task::none();
         } else {
           // loading
           if let Ok(yml) =
@@ -180,28 +176,28 @@ impl Application for Db2MdApp
                                     headers,
                                     &mut self.invalid_fields);
           }
-          return Command::none();
+          return Task::none();
         }
       }
 
       Message::SetHasHeader(value) => {
         self.has_header = value;
-        Command::none()
+        Task::none()
       }
 
       Message::SetFilePrefix(value) => {
         self.file_prefix = value;
-        Command::none()
+        Task::none()
       }
 
       Message::SetOutputDir(value) => {
         self.file_prefix = value;
-        Command::none()
+        Task::none()
       }
 
       Message::Convert => {
         self.write_fails.clear();
-        Command::perform(async { 1usize }, Message::UpdateProgress)
+        Task::perform(async { 1usize }, Message::UpdateProgress)
       }
 
       Message::UpdateProgress(value) => {
@@ -211,7 +207,7 @@ impl Application for Db2MdApp
         let row = self.data_matrix.get(self.progress);
         self.progress += 1usize;
         if row.is_none() {
-          return Command::none();
+          return Task::none();
         } else {
           let row_data = row.unwrap();
           let map = &self.fields_map;
@@ -222,19 +218,18 @@ impl Application for Db2MdApp
           let output_dir = &self.output_dir;
           let res = write_row_to_md(row_data, map, progress,
                                     output_dir, prefix);
-          Command::perform(async move { res },
-                           Message::UpdateProgress)
+          Task::perform(async move { res }, Message::UpdateProgress)
         }
       }
 
       Message::RowsLoaded => {
         self.is_loading = false;
-        Command::none()
+        Task::none()
       }
     }
   }
 
-  fn view(&self) -> Element<Message>
+  pub fn view(&self) -> Element<Message>
   {
     let header = Svg::from_path("./assets/header.svg");
     let warn_color = Color::from_rgb(1.0, 0.6, 0.2);
@@ -245,10 +240,12 @@ impl Application for Db2MdApp
       text("Nothing selected")
     };
 
-    let file_selection =
-      row![button("Select XLSX file").on_press(Message::SelectFile),
-           Space::with_width(10), path_text, Space::with_width(Length::Fill),
-           button("Load").on_press(Message::LoadFile)].align_items(Alignment::Center);
+    let file_selection = row![button("Select XLSX
+    file").on_press(Message::SelectFile),
+           Space::with_width(10),
+           path_text,
+           Space::with_width(Length::Fill),
+           button("Load").on_press(Message::LoadFile)].width(Fill);
 
     let rows_info = if let Some(rows) = self.rows_loaded {
       let cols = self.cols_loaded.as_ref().unwrap();
@@ -267,10 +264,12 @@ impl Application for Db2MdApp
       text("No schema selected")
     };
 
-    let yaml_selection =
-      row![button("Select YAML file").on_press(Message::SelectYaml),
-           Space::with_width(10), yaml_path, Space::with_width(Length::Fill),
-           button("Load").on_press(Message::LoadYaml)].align_items(Alignment::Center);
+    let yaml_selection = row![button("Select YAML
+    file").on_press(Message::SelectYaml),
+           Space::with_width(10),
+           yaml_path,
+           Space::with_width(Length::Fill),
+           button("Load").on_press(Message::LoadYaml)].width(Fill);
 
     let yaml_info = if self.fields_map.len() > 0 {
       let cols = self.cols_loaded.as_ref().unwrap();
@@ -278,11 +277,11 @@ impl Application for Db2MdApp
       if field_num > *cols {
         text(format!("Find {} fields but each row has {} columns, \
                       only first {} fields will be used",
-                     field_num, cols, cols)).style(warn_color)
+                     field_num, cols, cols)).color(warn_color)
       } else if field_num < *cols {
         text(format!("Find {} fields but each row has {} columns, \
                       only first {} columns will be used",
-                     field_num, cols, field_num)).style(warn_color)
+                     field_num, cols, field_num)).color(warn_color)
       } else {
         text("All fields found in selected yaml will be used to \
               generate MD")
@@ -293,7 +292,7 @@ impl Application for Db2MdApp
 
     let invalid_field = if self.invalid_fields.len() > 0 {
       text(format!("Invalid fields in Yaml {:?}",
-                   self.invalid_fields)).style(warn_color)
+                   self.invalid_fields)).color(warn_color)
     } else if self.fields_map.len() > 0 {
       text("All fields in Yaml are found in the sheet")
     } else {
@@ -318,37 +317,32 @@ impl Application for Db2MdApp
                     size: None,
                     line_height: LineHeight::default(),
                     shaping: Shaping::default()
-                })].spacing(10)
-                           .align_items(Alignment::Center);
+                })].spacing(10);
 
     let prefix_input = row![
             text("Prefix for generated files"),
             text_input("Text input", &self.file_prefix)
                 .on_input(Message::SetFilePrefix)
                 .padding(10)
-        ].spacing(10)
-                       .align_items(Alignment::Center);
+        ].spacing(10);
 
     let output_dir = row![
             text("Output directory for generated files"),
             text_input("Text input", &self.output_dir)
                 .on_input(Message::SetOutputDir)
                 .padding(10)
-        ].spacing(10)
-                     .align_items(Alignment::Center);
+        ].spacing(10);
 
     let percentage: f32 = self.progress as f32
                           / self.rows_loaded.unwrap_or(1usize) as f32
                           * 100f32;
-    let progress = row![
-            progress_bar(0.0..=100.0, percentage),
-            button("Convert").on_press(Message::Convert)
-        ]
-        .spacing(10)
-        .align_items(Alignment::Center);
+    let progress =
+      row![progress_bar(0.0..=100.0, percentage),
+           button("Convert").on_press(Message::Convert)].spacing(10);
 
     let completion_msg = if self.write_fails.len() > 0 {
-      text(format!("Fail to write rows: {:?}", self.write_fails)).style(warn_color)
+      text(format!("Fail to write rows: {:?}",
+    self.write_fails)).color(warn_color)
     } else {
       text("")
     };
@@ -364,8 +358,8 @@ impl Application for Db2MdApp
                       output_dir,
                       progress,
                       completion_msg].spacing(20)
-                                     .padding(20)).center_x()
-                                                  .center_y()
+                                     .padding(20)).center_x(Fill)
+                                                  .center_y(Fill)
                                                   .into()
   }
 }

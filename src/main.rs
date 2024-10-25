@@ -1,8 +1,8 @@
 #![allow(non_snake_case)]
 use db2md::gui::Db2MdApp;
-use iced::{Application, Settings};
+use iced::application;
 
 fn main() -> iced::Result
 {
-  Db2MdApp::run(Settings::default())
+  application(Db2MdApp::title, Db2MdApp::update, Db2MdApp::view).theme(Db2MdApp::theme).run()
 }
