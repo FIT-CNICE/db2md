@@ -3,9 +3,9 @@ use iced::widget::{
   checkbox::Icon,
   column, container, progress_bar, row, text,
   text::{LineHeight, Shaping},
-  text_input, Space, Svg,
+  text_input, Space,
 };
-use iced::{Alignment, Color, Element, Fill, Font, Length, Task};
+use iced::{Color, Element, Fill, Font, Length, Task};
 use rfd::AsyncFileDialog;
 
 use crate::reader::read_excel;
@@ -231,7 +231,7 @@ impl Db2MdApp
 
   pub fn view(&self) -> Element<Message>
   {
-    let header = Svg::from_path("./assets/header.svg");
+    let header = iced::widget::image("./assets/header.png").content_fit(iced::ContentFit::Contain);
     let warn_color = Color::from_rgb(1.0, 0.6, 0.2);
 
     let path_text = if let Some(path) = self.selected_file.clone() {
@@ -240,8 +240,8 @@ impl Db2MdApp
       text("Nothing selected")
     };
 
-    let file_selection = row![button("Select XLSX
-    file").on_press(Message::SelectFile),
+    let file_selection =
+      row![button("Select XLSX").on_press(Message::SelectFile),
            Space::with_width(10),
            path_text,
            Space::with_width(Length::Fill),
@@ -264,8 +264,8 @@ impl Db2MdApp
       text("No schema selected")
     };
 
-    let yaml_selection = row![button("Select YAML
-    file").on_press(Message::SelectYaml),
+    let yaml_selection =
+      row![button("Select YAML").on_press(Message::SelectYaml),
            Space::with_width(10),
            yaml_path,
            Space::with_width(Length::Fill),
@@ -358,8 +358,8 @@ impl Db2MdApp
                       output_dir,
                       progress,
                       completion_msg].spacing(20)
-                                     .padding(20)).center_x(Fill)
-                                                  .center_y(Fill)
+                                     .max_width(800)
+                                     .padding(10)).center(Fill)
                                                   .into()
   }
 }
