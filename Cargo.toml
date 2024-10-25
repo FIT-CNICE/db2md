@@ -9,7 +9,7 @@ edition = "2021"
 [dependencies]
 calamine = { version = "0.26.1", features = ["dates"] }
 # cpu only
-iced = { version = "0.13.1", default-features = false, features = ["tiny-skia", "fira-sans", "image", "advanced", "svg"] }
+iced = { version = "0.13.1", default-features = false, features = ["tiny-skia", "image", "advanced"] }
 chrono = "0.4.38"
 rfd = "0.15.0"
 yaml-rust2 = "0.9.0"

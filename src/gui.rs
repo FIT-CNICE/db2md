@@ -1,11 +1,16 @@
 use iced::widget::{
   button, checkbox,
   checkbox::Icon,
-  column, container, progress_bar, row, text,
+  column, container, image,
+  image::Handle,
+  progress_bar, row, text,
   text::{LineHeight, Shaping},
   text_input, Space,
 };
-use iced::{Color, Element, Fill, Font, Length, Task};
+use iced::{
+  advanced::image::Bytes, alignment::Vertical, Color, Element, Fill,
+  Font, Length, Task,
+};
 use rfd::AsyncFileDialog;
 
 use crate::reader::read_excel;
@@ -231,7 +236,11 @@ impl Db2MdApp
 
   pub fn view(&self) -> Element<Message>
   {
-    let header = iced::widget::image("./assets/header.png").content_fit(iced::ContentFit::Contain);
+    let png = include_bytes!(".././assets/header.png");
+    let png_bytes = Bytes::from_static(png);
+    let png_handle = Handle::from_bytes(png_bytes);
+    let header =
+      image(png_handle).content_fit(iced::ContentFit::Contain);
     let warn_color = Color::from_rgb(1.0, 0.6, 0.2);
 
     let path_text = if let Some(path) = self.selected_file.clone() {
@@ -245,7 +254,7 @@ impl Db2MdApp
            Space::with_width(10),
            path_text,
            Space::with_width(Length::Fill),
-           button("Load").on_press(Message::LoadFile)].width(Fill);
+           button("Load").on_press(Message::LoadFile)].align_y(Vertical::Center).width(Fill);
 
     let rows_info = if let Some(rows) = self.rows_loaded {
       let cols = self.cols_loaded.as_ref().unwrap();
@@ -269,7 +278,7 @@ impl Db2MdApp
            Space::with_width(10),
            yaml_path,
            Space::with_width(Length::Fill),
-           button("Load").on_press(Message::LoadYaml)].width(Fill);
+           button("Load").on_press(Message::LoadYaml)].align_y(Vertical::Center).width(Fill);
 
     let yaml_info = if self.fields_map.len() > 0 {
       let cols = self.cols_loaded.as_ref().unwrap();
@@ -317,28 +326,31 @@ impl Db2MdApp
                     size: None,
                     line_height: LineHeight::default(),
                     shaping: Shaping::default()
-                })].spacing(10);
+                })].spacing(10)
+                           .align_y(Vertical::Center);
 
     let prefix_input = row![
             text("Prefix for generated files"),
             text_input("Text input", &self.file_prefix)
                 .on_input(Message::SetFilePrefix)
                 .padding(10)
-        ].spacing(10);
+        ].spacing(10)
+                       .align_y(Vertical::Center);
 
     let output_dir = row![
             text("Output directory for generated files"),
             text_input("Text input", &self.output_dir)
                 .on_input(Message::SetOutputDir)
                 .padding(10)
-        ].spacing(10);
+        ].spacing(10)
+                     .align_y(Vertical::Center);
 
     let percentage: f32 = self.progress as f32
                           / self.rows_loaded.unwrap_or(1usize) as f32
                           * 100f32;
     let progress =
       row![progress_bar(0.0..=100.0, percentage),
-           button("Convert").on_press(Message::Convert)].spacing(10);
+           button("Convert").on_press(Message::Convert)].spacing(10).align_y(Vertical::Center);
 
     let completion_msg = if self.write_fails.len() > 0 {
       text(format!("Fail to write rows: {:?}",
