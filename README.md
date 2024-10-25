@@ -2,6 +2,17 @@
 
 db2md is a tool for converting Excel spreadsheets to Markdown files based on a YAML schema.
 
+## Release Notes
+
+### v0.1.0-alpha (Pre-release)
+
+- Initial alpha release of db2md
+- Basic functionality for converting Excel spreadsheets to Markdown
+- GUI interface for file selection and conversion
+- Support for YAML schema definition
+- Ability to handle various data types in Excel
+- Progress tracking during conversion process
+
 ## Installation
 
 1. Ensure you have Rust installed on your system. If not, you can install it from [official website](https://www.rust-lang.org/tools/install).
