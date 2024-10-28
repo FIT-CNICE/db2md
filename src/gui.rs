@@ -1,3 +1,4 @@
+use iced::advanced::widget::text as advanced_text;
 use iced::widget::{
   button, checkbox,
   checkbox::Icon,
@@ -260,7 +261,10 @@ impl Db2MdApp
       let cols = self.cols_loaded.as_ref().unwrap();
       let sheet = self.sheet_name.as_ref().unwrap();
       text(format!("Loaded {} rows of {} strings in {}",
-                   rows, cols, sheet))
+                   // support rendering of complex scripts
+                   rows,
+                   cols,
+                   sheet)).shaping(advanced_text::Shaping::Advanced)
     } else if self.is_loading {
       text("Loading...")
     } else {
