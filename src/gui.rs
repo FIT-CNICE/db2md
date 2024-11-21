@@ -63,7 +63,7 @@ pub enum Message
   SetFilePrefix(String),
   SetOutputDir(String),
   Convert,
-  UpdateProgress,
+  Done,
   RowsLoaded,
 }
 
@@ -210,10 +210,10 @@ impl Db2MdApp
 
       Message::Convert => {
         if let Ok(mut fails) = self.write_fails.lock() {
-            fails.clear();
+          fails.clear();
         }
         if let Ok(mut progress) = self.progress.lock() {
-            *progress = 0;
+          *progress = 0;
         }
 
         // Clone what we need before the async block
@@ -234,13 +234,12 @@ impl Db2MdApp
                 let fields = fields_map.clone();
                 let out_dir = output_dir.clone();
                 let prefix = file_prefix.clone();
-                let row_num = idx + if has_header { 1usize } else { 0usize };
-                
+                let row_num =
+                  idx + if has_header { 1usize } else { 0usize };
+
                 async move {
-                  let result = write_row_to_md(&data_row,
-                                               &fields,
-                                               row_num,
-                                               &out_dir,
+                  let result = write_row_to_md(&data_row, &fields,
+                                               row_num, &out_dir,
                                                &prefix).await;
                   (idx, result)
                 }
@@ -261,16 +260,11 @@ impl Db2MdApp
                                 }
                             }
                         }
-                        (0, 1) // completion signal
                       },
-                      |(_idx, _result)| {
-                        Message::UpdateProgress
-                      })
+                      |_|Message::Done)
       }
 
-      Message::UpdateProgress => {
-        Task::none()
-      }
+      Message::Done => Task::none(),
       Message::RowsLoaded => {
         self.is_loading = false;
         Task::none()
@@ -392,7 +386,10 @@ impl Db2MdApp
         ].spacing(10)
                      .align_y(Vertical::Center);
 
-    let progress = self.progress.lock().map(|guard| *guard).unwrap_or(0);
+    let progress = self.progress
+                       .lock()
+                       .map(|guard| *guard)
+                       .unwrap_or(0);
     let percentage: f32 = progress as f32
                           / self.rows_loaded.unwrap_or(1usize) as f32
                           * 100f32;
@@ -401,13 +398,13 @@ impl Db2MdApp
            button("Convert").on_press(Message::Convert)].spacing(10).align_y(Vertical::Center);
 
     let completion_msg = if let Ok(fails) = self.write_fails.lock() {
-        if !fails.is_empty() {
-            text(format!("Fail to write rows: {:?}", *fails)).color(warn_color)
-        } else {
-            text("")
-        }
-    } else {
+      if !fails.is_empty() {
+        text(format!("Fail to write rows: {:?}", *fails)).color(warn_color)
+      } else {
         text("")
+      }
+    } else {
+      text("")
     };
 
     container(column![header,
