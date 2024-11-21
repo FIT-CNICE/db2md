@@ -18,6 +18,8 @@ use crate::reader::read_excel;
 use crate::write_row_to_md;
 use crate::yaml_parser::*;
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+use iced::futures::FutureExt;
 
 // State management
 #[derive(Debug)]
@@ -215,16 +217,18 @@ impl Db2MdApp
         if row.is_none() {
           return Task::none();
         } else {
-          let row_data = row.unwrap();
-          let map = &self.fields_map;
-          let progress =
-            self.progress
-            + if self.has_header { 1usize } else { 0usize };
-          let prefix = &self.file_prefix;
-          let output_dir = &self.output_dir;
-          let res = write_row_to_md(row_data, map, progress,
-                                    output_dir, prefix);
-          Task::perform(async move { res }, Message::UpdateProgress)
+          let row_data = row.unwrap().clone();
+          let map = self.fields_map.clone();
+          let progress = self.progress + if self.has_header { 1usize } else { 0usize };
+          let prefix = self.file_prefix.clone();
+          let output_dir = self.output_dir.clone();
+          
+          Task::perform(
+            async move {
+              write_row_to_md(&row_data, &map, progress, &output_dir, &prefix).await
+            },
+            Message::UpdateProgress
+          )
         }
       }
 

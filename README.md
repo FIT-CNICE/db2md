@@ -4,6 +4,16 @@ db2md is a tool for converting Excel spreadsheets to Markdown files based on a Y
 
 ## Release Notes
 
+### v0.1.0
+- [ ] make writing to md file async, this includes changes to
+  - [lib/write_row_to_md](./src/lib.rs#L9), 
+  - [md_gen/generate_markdown](./src/md_gen.rs#L7)
+  - [gui/update](./src/gui.rs#L209)
+  - [gui/view](./src/gui.rs#L355)
+- [ ] make progress bar async
+- [ ] allow user to select values in a column as markdown file names
+- [ ] make error handling more user-friendly
+
 ### v0.1.0-alpha (Pre-release)
 
 - Initial alpha release of db2md
