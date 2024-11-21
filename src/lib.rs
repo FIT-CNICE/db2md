@@ -3,8 +3,8 @@ pub mod md_gen;
 pub mod reader;
 pub mod yaml_parser;
 
-use async_fs;
 use smol;
+use smol::fs as async_fs;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::thread;

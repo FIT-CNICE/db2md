@@ -833,10 +833,8 @@ dependencies = [
 name = "db2md"
 version = "0.1.0"
 dependencies = [
- "async-fs",
  "calamine",
  "chrono",
- "futures-lite",
  "iced",
  "rfd",
  "smol",

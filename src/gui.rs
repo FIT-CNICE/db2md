@@ -1,3 +1,4 @@
+#![allow(unused_imports)]
 use iced::advanced::widget::text as advanced_text;
 use iced::widget::{
   button, checkbox,
@@ -17,9 +18,12 @@ use rfd::AsyncFileDialog;
 use crate::reader::read_excel;
 use crate::write_row_to_md;
 use crate::yaml_parser::*;
+use iced::futures::FutureExt as IcedFutureExt;
+use iced::futures::StreamExt as IcedStreamExt;
+use smol::future::FutureExt as SmolFutureExt;
+use smol::stream::StreamExt as SmolStreamExt;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use iced::futures::FutureExt;
 
 // State management
 #[derive(Debug)]
@@ -58,7 +62,7 @@ pub enum Message
   SetFilePrefix(String),
   SetOutputDir(String),
   Convert,
-  UpdateProgress(usize),
+  UpdateProgress(usize, usize),
   RowsLoaded,
 }
 
@@ -199,39 +203,57 @@ impl Db2MdApp
       }
 
       Message::SetOutputDir(value) => {
-        self.file_prefix = value;
+        self.output_dir = value;
         Task::none()
       }
 
       Message::Convert => {
         self.write_fails.clear();
-        Task::perform(async { 1usize }, Message::UpdateProgress)
+        self.progress = 0;
+
+        // Prepare all the data needed for concurrent processing
+        let all_rows: Vec<_> =
+          self.data_matrix
+              .iter()
+              .enumerate()
+              .map(|(idx, row)| {
+                let row_data = row.clone();
+                let map = self.fields_map.clone();
+                let progress =
+                  idx + if self.has_header { 1usize } else { 0usize };
+                let prefix = self.file_prefix.clone();
+                let output_dir = self.output_dir.clone();
+                async move {
+                  let result = write_row_to_md(&row_data,
+                                               &map,
+                                               progress,
+                                               &output_dir,
+                                               &prefix).await;
+                  (idx, result)
+                }
+              })
+              .collect();
+
+        Task::perform(async move {
+                        let mut stream = smol::stream::iter(all_rows);
+
+                        while let Some(async_op) = smol::stream::StreamExt::next(&mut stream).await {
+                            let (idx, result) = async_op.await;
+                        }
+                        (0, 1) // Dummy value for completion
+                      },
+                      |(idx, result)| {
+                        Message::UpdateProgress(idx, result)
+                      })
       }
 
-      Message::UpdateProgress(value) => {
-        if value == 0usize {
-          self.write_fails.push(self.progress + 1usize);
+      Message::UpdateProgress(idx, result) => {
+        self.progress += 1;
+        if result == 0 {
+          self.write_fails.push(idx + 1);
         }
-        let row = self.data_matrix.get(self.progress);
-        self.progress += 1usize;
-        if row.is_none() {
-          return Task::none();
-        } else {
-          let row_data = row.unwrap().clone();
-          let map = self.fields_map.clone();
-          let progress = self.progress + if self.has_header { 1usize } else { 0usize };
-          let prefix = self.file_prefix.clone();
-          let output_dir = self.output_dir.clone();
-          
-          Task::perform(
-            async move {
-              write_row_to_md(&row_data, &map, progress, &output_dir, &prefix).await
-            },
-            Message::UpdateProgress
-          )
-        }
+        Task::none()
       }
-
       Message::RowsLoaded => {
         self.is_loading = false;
         Task::none()
