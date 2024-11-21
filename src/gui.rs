@@ -24,6 +24,7 @@ use smol::future::FutureExt as SmolFutureExt;
 use smol::stream::StreamExt as SmolStreamExt;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+// use smol::lock::Mutex;
 
 // State management
 #[derive(Debug)]
@@ -43,8 +44,8 @@ pub struct Db2MdApp
   // I/O
   file_prefix: String,
   output_dir: String,
-  progress: usize,
-  write_fails: Vec<usize>,
+  progress: Arc<Mutex<usize>>,
+  write_fails: Arc<Mutex<Vec<usize>>>,
   is_loading: bool,
 }
 
@@ -62,7 +63,7 @@ pub enum Message
   SetFilePrefix(String),
   SetOutputDir(String),
   Convert,
-  UpdateProgress(usize, usize),
+  UpdateProgress,
   RowsLoaded,
 }
 
@@ -75,12 +76,12 @@ impl Default for Db2MdApp
            selected_yaml: None,
            file_prefix: String::from("ccms-doc"),
            output_dir: String::from("_md"),
-           progress: 0usize,
+           progress: Arc::new(Mutex::new(0)),
            sheet_name: None,
            rows_loaded: None,
            cols_loaded: None,
            data_matrix: Vec::new(),
-           write_fails: Vec::new(),
+           write_fails: Arc::new(Mutex::new(Vec::new())),
            fields_map: HashMap::new(),
            invalid_fields: Vec::new(),
            is_loading: false }
@@ -208,8 +209,20 @@ impl Db2MdApp
       }
 
       Message::Convert => {
-        self.write_fails.clear();
-        self.progress = 0;
+        if let Ok(mut fails) = self.write_fails.lock() {
+            fails.clear();
+        }
+        if let Ok(mut progress) = self.progress.lock() {
+            *progress = 0;
+        }
+
+        // Clone what we need before the async block
+        let has_header = self.has_header;
+        let fields_map = self.fields_map.clone();
+        let output_dir = self.output_dir.clone();
+        let file_prefix = self.file_prefix.clone();
+        let progress = Arc::clone(&self.progress);
+        let write_fails = Arc::clone(&self.write_fails);
 
         // Prepare all the data needed for concurrent processing
         let all_rows: Vec<_> =
@@ -217,17 +230,17 @@ impl Db2MdApp
               .iter()
               .enumerate()
               .map(|(idx, row)| {
-                let row_data = row.clone();
-                let map = self.fields_map.clone();
-                let progress =
-                  idx + if self.has_header { 1usize } else { 0usize };
-                let prefix = self.file_prefix.clone();
-                let output_dir = self.output_dir.clone();
+                let data_row = row.clone();
+                let fields = fields_map.clone();
+                let out_dir = output_dir.clone();
+                let prefix = file_prefix.clone();
+                let row_num = idx + if has_header { 1usize } else { 0usize };
+                
                 async move {
-                  let result = write_row_to_md(&row_data,
-                                               &map,
-                                               progress,
-                                               &output_dir,
+                  let result = write_row_to_md(&data_row,
+                                               &fields,
+                                               row_num,
+                                               &out_dir,
                                                &prefix).await;
                   (idx, result)
                 }
@@ -239,19 +252,23 @@ impl Db2MdApp
 
                         while let Some(async_op) = smol::stream::StreamExt::next(&mut stream).await {
                             let (idx, result) = async_op.await;
+                            if let Ok(mut progress_guard) = progress.lock() {
+                                *progress_guard += 1;
+                            }
+                            if result == 0 {
+                                if let Ok(mut fails_guard) = write_fails.lock() {
+                                    fails_guard.push(idx + 1);
+                                }
+                            }
                         }
-                        (0, 1) // Dummy value for completion
+                        (0, 1) // completion signal
                       },
-                      |(idx, result)| {
-                        Message::UpdateProgress(idx, result)
+                      |(_idx, _result)| {
+                        Message::UpdateProgress
                       })
       }
 
-      Message::UpdateProgress(idx, result) => {
-        self.progress += 1;
-        if result == 0 {
-          self.write_fails.push(idx + 1);
-        }
+      Message::UpdateProgress => {
         Task::none()
       }
       Message::RowsLoaded => {
@@ -375,18 +392,22 @@ impl Db2MdApp
         ].spacing(10)
                      .align_y(Vertical::Center);
 
-    let percentage: f32 = self.progress as f32
+    let progress = self.progress.lock().map(|guard| *guard).unwrap_or(0);
+    let percentage: f32 = progress as f32
                           / self.rows_loaded.unwrap_or(1usize) as f32
                           * 100f32;
     let progress =
       row![progress_bar(0.0..=100.0, percentage),
            button("Convert").on_press(Message::Convert)].spacing(10).align_y(Vertical::Center);
 
-    let completion_msg = if self.write_fails.len() > 0 {
-      text(format!("Fail to write rows: {:?}",
-    self.write_fails)).color(warn_color)
+    let completion_msg = if let Ok(fails) = self.write_fails.lock() {
+        if !fails.is_empty() {
+            text(format!("Fail to write rows: {:?}", *fails)).color(warn_color)
+        } else {
+            text("")
+        }
     } else {
-      text("")
+        text("")
     };
 
     container(column![header,
