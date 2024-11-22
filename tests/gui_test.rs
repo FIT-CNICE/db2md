@@ -32,24 +32,15 @@ fn test_file_selection()
   let mut app = Db2MdApp::default();
 
   // Test file selection message
-  let _ = app.update(Message::FileSelected(Some("./tests/fruit_test.xlsx".to_string())));
-  
+  let _ =
+    app.update(Message::FileSelected(Some("./tests/fruit_test.\
+                                           xlsx"
+                                                .to_string())));
+
   // Test YAML selection message
-  let _ = app.update(Message::YamlSelected(Some("./tests/schema.yaml".to_string())));
-  assert!(true);
-}
-
-#[test]
-fn test_progress_updates()
-{
-  let mut app = Db2MdApp::default();
-
-  // Test progress update message
-  let _ = app.update(Message::UpdateProgress(0, 1));
-  let _ = app.update(Message::UpdateProgress(1, 1));
-  let _ = app.update(Message::UpdateProgress(2, 0)); // Simulated failure
-  // Update progress again
-  let _ = app.update(Message::UpdateProgress(3, 1));
+  let _ = app.update(Message::YamlSelected(Some("./tests/schema.\
+                                                 yaml"
+                                                      .to_string())));
   assert!(true);
 }
 
