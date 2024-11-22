@@ -20,11 +20,8 @@ use crate::write_row_to_md;
 use crate::yaml_parser::*;
 use iced::futures::FutureExt as IcedFutureExt;
 use iced::futures::StreamExt as IcedStreamExt;
-use smol::future::FutureExt as SmolFutureExt;
-use smol::stream::StreamExt as SmolStreamExt;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-// use smol::lock::Mutex;
 
 // State management
 #[derive(Debug)]
@@ -247,10 +244,10 @@ impl Db2MdApp
               .collect();
 
         Task::perform(async move {
-                        let mut stream = smol::stream::iter(all_rows);
+                        
+                        let mut stream = smol::stream::iter(all_rows).buffer_unordered(8);
 
-                        while let Some(async_op) = smol::stream::StreamExt::next(&mut stream).await {
-                            let (idx, result) = async_op.await;
+                        while let Some((idx, result)) = smol::stream::StreamExt::next(&mut stream).await {
                             if let Ok(mut progress_guard) = progress.lock() {
                                 *progress_guard += 1;
                             }
