@@ -1,25 +1,18 @@
 #![allow(unused_imports)]
+use iced::advanced::image::Bytes;
 use iced::advanced::widget::text as advanced_text;
-use iced::widget::{
-  button, checkbox,
-  checkbox::Icon,
-  column, container, image,
-  image::Handle,
-  progress_bar, row, text,
-  text::{LineHeight, Shaping},
-  text_input, Space,
-};
-use iced::{
-  advanced::image::Bytes, alignment::Vertical, Color, Element, Fill,
-  Font, Length, Task,
-};
+use iced::alignment::Vertical;
+use iced::widget::checkbox::Icon;
+use iced::widget::image::Handle;
+use iced::widget::text::{LineHeight, Shaping};
+use iced::widget::{button, checkbox, column, container, image, progress_bar, row, text, text_input, Space};
+use iced::{Color, Element, Fill, Font, Length, Task};
 use rfd::AsyncFileDialog;
 
 use crate::reader::read_excel;
 use crate::write_row_to_md;
 use crate::yaml_parser::*;
-use iced::futures::FutureExt as IcedFutureExt;
-use iced::futures::StreamExt as IcedStreamExt;
+use iced::futures::{FutureExt as IcedFutureExt, StreamExt as IcedStreamExt};
 use std::collections::HashMap;
 
 // State management
@@ -59,7 +52,7 @@ pub enum Message
   SetFilePrefix(String),
   SetOutputDir(String),
   Convert,
-  UpdateProgress((usize,usize)),
+  UpdateProgress((usize, usize)),
   RowsLoaded,
 }
 
@@ -104,73 +97,57 @@ impl Db2MdApp
       Message::SelectFile => {
         // Launch file dialog
         Task::perform(async {
-                        AsyncFileDialog::new().add_filter("Excel",
-                                                          &["xlsx"])
+                        AsyncFileDialog::new().add_filter("Excel", &["xlsx"])
                                               .pick_file()
                                               .await
-                                              .map(|file| {
-                                                file.path()
-                                                    .to_string_lossy()
-                                                    .into_owned()
-                                              })
+                                              .map(|file| file.path().to_string_lossy().into_owned())
                       },
                       Message::FileSelected)
-      }
+      },
 
       Message::FileSelected(path) => {
         self.selected_file = path;
         Task::none()
-      }
+      },
 
       Message::LoadFile => {
         if self.selected_file.is_none() {
-          return Task::none();
+          Task::none()
         } else {
           self.is_loading = true;
           // loading
           let mut data = vec![];
-          let meta =
-            read_excel(self.selected_file.as_ref().unwrap(),
-                       &mut data).unwrap_or((String::from("N/A"),
-                                             0,
-                                             0));
+          let meta = read_excel(self.selected_file.as_ref().unwrap(), &mut data).unwrap_or((String::from("N/A"), 0, 0));
           self.data_matrix = data;
           self.rows_loaded = Some(meta.1);
           self.cols_loaded = Some(meta.2);
           self.sheet_name = Some(meta.0);
           Task::perform(async {}, |_| Message::RowsLoaded)
         }
-      }
+      },
 
       Message::SelectYaml => {
         // Launch file dialog
         Task::perform(async {
-                        AsyncFileDialog::new().add_filter("Yaml",
-                                                          &["yaml"])
+                        AsyncFileDialog::new().add_filter("Yaml", &["yaml"])
                                               .pick_file()
                                               .await
-                                              .map(|file| {
-                                                file.path()
-                                                    .to_string_lossy()
-                                                    .into_owned()
-                                              })
+                                              .map(|file| file.path().to_string_lossy().into_owned())
                       },
                       Message::YamlSelected)
-      }
+      },
 
       Message::YamlSelected(path) => {
         self.selected_yaml = path;
         Task::none()
-      }
+      },
 
       Message::LoadYaml => {
         if self.selected_yaml.is_none() {
-          return Task::none();
+          Task::none()
         } else {
           // loading
-          if let Ok(yml) =
-            parse_yaml_schema(self.selected_yaml.as_ref().unwrap())
-          {
+          if let Ok(yml) = parse_yaml_schema(self.selected_yaml.as_ref().unwrap()) {
             let mut fields_map_raw = vec![];
             extract_fields(&yml, "", &mut fields_map_raw);
 
@@ -180,29 +157,28 @@ impl Db2MdApp
               &Vec::new()
             };
             self.invalid_fields.clear();
-            self.fields_map =
-              map_fields_to_columns(fields_map_raw.as_ref(),
-                                    headers,
-                                    &mut self.invalid_fields);
+            self.fields_map = map_fields_to_columns(fields_map_raw.as_ref(),
+                                                    headers,
+                                                    &mut self.invalid_fields);
           }
-          return Task::none();
+          Task::none()
         }
-      }
+      },
 
       Message::SetHasHeader(value) => {
         self.has_header = value;
         Task::none()
-      }
+      },
 
       Message::SetFilePrefix(value) => {
         self.file_prefix = value;
         Task::none()
-      }
+      },
 
       Message::SetOutputDir(value) => {
         self.output_dir = value;
         Task::none()
-      }
+      },
 
       Message::Convert => {
         self.write_fails.clear();
@@ -216,43 +192,45 @@ impl Db2MdApp
 
         // Create futures for each row
         let all_rows: Vec<_> = self.data_matrix
-            .iter()
-            .enumerate()
-            .map(|(idx, row)| {
-                let data_row = row.clone();
-                let fields = fields_map.clone();
-                let out_dir = output_dir.clone();
-                let prefix = file_prefix.clone();
-                let row_num = idx + if has_header { 1usize } else { 0usize };
+                                   .iter()
+                                   .enumerate()
+                                   .map(|(idx, row)| {
+                                     let data_row = row.clone();
+                                     let fields = fields_map.clone();
+                                     let out_dir = output_dir.clone();
+                                     let prefix = file_prefix.clone();
+                                     let row_num = idx + if has_header { 1usize } else { 0usize };
 
-                async move {
-                    let result = write_row_to_md(&data_row, &fields, row_num, &out_dir, &prefix).await;
-                    (idx, result)
-                }
-            })
-            .collect();
+                                     async move {
+                                       let result =
+                                         write_row_to_md(&data_row, &fields, row_num, &out_dir, &prefix).await;
+                                       (idx, result)
+                                     }
+                                   })
+                                   .collect();
 
-        // Convert Vec of futures into a Stream and process with Task::run
-        let stream = smol::stream::iter(all_rows)
-            .map(|future| future.boxed())
-            .buffer_unordered(8) // Process up to 8 futures concurrently
-            .boxed();
+        // Convert Vec of futures into a stream and process with
+        // Task::run
+        let stream = smol::stream::iter(all_rows).map(|future| future.boxed())
+                                                 .buffer_unordered(8) // Process up to 8 futures
+                                                 // concurrently
+                                                 .boxed();
 
         Task::run(stream, Message::UpdateProgress)
-      }
+      },
 
       Message::UpdateProgress((idx, result)) => {
         self.progress += 1;
         if result == 0 {
-            self.write_fails.push(idx + 1);
+          self.write_fails.push(idx + 1);
         }
         Task::none()
-      }
+      },
 
       Message::RowsLoaded => {
         self.is_loading = false;
         Task::none()
-      }
+      },
     }
   }
 
@@ -261,22 +239,21 @@ impl Db2MdApp
     let png = include_bytes!(".././assets/header.png");
     let png_bytes = Bytes::from_static(png);
     let png_handle = Handle::from_bytes(png_bytes);
-    let header =
-      image(png_handle).content_fit(iced::ContentFit::Contain);
+    let header = image(png_handle).content_fit(iced::ContentFit::Contain);
     let warn_color = Color::from_rgb(1.0, 0.6, 0.2);
 
     let path_text = if let Some(path) = self.selected_file.clone() {
-      text(format!("{}", path))
+      text(path.to_string())
     } else {
       text("Nothing selected")
     };
 
-    let file_selection =
-      row![button("Select XLSX").on_press(Message::SelectFile),
-           Space::with_width(10),
-           path_text,
-           Space::with_width(Length::Fill),
-           button("Load").on_press(Message::LoadFile)].align_y(Vertical::Center).width(Fill);
+    let file_selection = row![button("Select XLSX").on_press(Message::SelectFile),
+                              Space::with_width(10),
+                              path_text,
+                              Space::with_width(Length::Fill),
+                              button("Load").on_press(Message::LoadFile)].align_y(Vertical::Center)
+                                                                         .width(Fill);
 
     let rows_info = if let Some(rows) = self.rows_loaded {
       let cols = self.cols_loaded.as_ref().unwrap();
@@ -293,96 +270,80 @@ impl Db2MdApp
     };
 
     let yaml_path = if let Some(path) = self.selected_yaml.clone() {
-      text(format!("{}", path))
+      text(path.to_string())
     } else {
       text("No schema selected")
     };
 
-    let yaml_selection =
-      row![button("Select YAML").on_press(Message::SelectYaml),
-           Space::with_width(10),
-           yaml_path,
-           Space::with_width(Length::Fill),
-           button("Load").on_press(Message::LoadYaml)].align_y(Vertical::Center).width(Fill);
+    let yaml_selection = row![button("Select YAML").on_press(Message::SelectYaml),
+                              Space::with_width(10),
+                              yaml_path,
+                              Space::with_width(Length::Fill),
+                              button("Load").on_press(Message::LoadYaml)].align_y(Vertical::Center)
+                                                                         .width(Fill);
 
-    let yaml_info = if self.fields_map.len() > 0 {
+    let yaml_info = if !self.fields_map.is_empty() {
       let cols = self.cols_loaded.as_ref().unwrap();
       let field_num = self.fields_map.len();
       if field_num > *cols {
-        text(format!("Find {} fields but each row has {} columns, \
-                      only first {} fields will be used",
+        text(format!("Find {} fields but each row has {} columns, only first {} fields will be used",
                      field_num, cols, cols)).color(warn_color)
       } else if field_num < *cols {
-        text(format!("Find {} fields but each row has {} columns, \
-                      only first {} columns will be used",
+        text(format!("Find {} fields but each row has {} columns, only first {} columns will be used",
                      field_num, cols, field_num)).color(warn_color)
       } else {
-        text("All fields found in selected yaml will be used to \
-              generate MD")
+        text("All fields found in selected yaml will be used to generate MD")
       }
     } else {
       text("No Field Loaded")
     };
 
-    let invalid_field = if self.invalid_fields.len() > 0 {
-      text(format!("Invalid fields in Yaml {:?}",
-                   self.invalid_fields)).color(warn_color)
-    } else if self.fields_map.len() > 0 {
+    let invalid_field = if !self.invalid_fields.is_empty() {
+      text(format!("Invalid fields in Yaml {:?}", self.invalid_fields)).color(warn_color)
+    } else if !self.fields_map.is_empty() {
       text("All fields in Yaml are found in the sheet")
     } else {
       text("")
     };
 
-    let header_selection = row![text("Has header?"),
-           checkbox("Yes", self.has_header).on_toggle(|_| {
-                                   Message::SetHasHeader(true)
-                                 }).icon(Icon {
-                    font: Font::DEFAULT,
-                    code_point: 'x',
-                    size: None,
-                    line_height: LineHeight::default(),
-                    shaping: Shaping::default()
-                }),
-           checkbox("No", !self.has_header).on_toggle(|_| {
-                                  Message::SetHasHeader(false)
-                                 }).icon(Icon {
-                    font: Font::DEFAULT,
-                    code_point: 'x',
-                    size: None,
-                    line_height: LineHeight::default(),
-                    shaping: Shaping::default()
-                })].spacing(10)
-                           .align_y(Vertical::Center);
+    let header_selection =
+      row![text("Has header?"),
+           checkbox("Yes", self.has_header).on_toggle(|_| { Message::SetHasHeader(true) })
+                                           .icon(Icon { font: Font::DEFAULT,
+                                                        code_point: 'x',
+                                                        size: None,
+                                                        line_height: LineHeight::default(),
+                                                        shaping: Shaping::default() }),
+           checkbox("No", !self.has_header).on_toggle(|_| { Message::SetHasHeader(false) })
+                                           .icon(Icon { font: Font::DEFAULT,
+                                                        code_point: 'x',
+                                                        size: None,
+                                                        line_height: LineHeight::default(),
+                                                        shaping: Shaping::default() })].spacing(10)
+                                                                                       .align_y(Vertical::Center);
 
-    let prefix_input = row![
-            text("Prefix for generated files"),
-            text_input("Text input", &self.file_prefix)
-                .on_input(Message::SetFilePrefix)
-                .padding(10)
-        ].spacing(10)
-                       .align_y(Vertical::Center);
+    let prefix_input = row![text("Prefix for generated files"),
+                            text_input("Text input", &self.file_prefix).on_input(Message::SetFilePrefix)
+                                                                       .padding(10)].spacing(10)
+                                                                                    .align_y(Vertical::Center);
 
-    let output_dir = row![
-            text("Output directory for generated files"),
-            text_input("Text input", &self.output_dir)
-                .on_input(Message::SetOutputDir)
-                .padding(10)
-        ].spacing(10)
-                     .align_y(Vertical::Center);
+    let output_dir = row![text("Output directory for generated files"),
+                          text_input("Text input", &self.output_dir).on_input(Message::SetOutputDir)
+                                                                    .padding(10)].spacing(10)
+                                                                                 .align_y(Vertical::Center);
 
     let progress = self.progress;
-    let percentage: f32 = progress as f32
-                          / self.rows_loaded.unwrap_or(1usize) as f32
-                          * 100f32;
-    let progress =
-      row![progress_bar(0.0..=100.0, percentage),
-           button("Convert").on_press(Message::Convert)].spacing(10).align_y(Vertical::Center);
+    let percentage: f32 = progress as f32 / self.rows_loaded.unwrap_or(1usize) as f32 * 100f32;
+    let progress = row![progress_bar(0.0..=100.0, percentage),
+                        button("Convert").on_press(Message::Convert)].spacing(10)
+                                                                     .align_y(Vertical::Center);
 
     let completion_msg = if !self.write_fails.is_empty() {
-        text(format!("Fail to write the following rows: {:?}", self.write_fails)).color(warn_color)
-      } else {
-        text("")
-      };
+      text(format!("Fail to write the following rows: {:?}",
+                   self.write_fails)).color(warn_color)
+    } else {
+      text("")
+    };
 
     container(column![header,
                       header_selection,

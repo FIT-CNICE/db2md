@@ -32,15 +32,10 @@ fn test_file_selection()
   let mut app = Db2MdApp::default();
 
   // Test file selection message
-  let _ =
-    app.update(Message::FileSelected(Some("./tests/fruit_test.\
-                                           xlsx"
-                                                .to_string())));
+  let _ = app.update(Message::FileSelected(Some("./tests/fruit_test.xlsx".to_string())));
 
   // Test YAML selection message
-  let _ = app.update(Message::YamlSelected(Some("./tests/schema.\
-                                                 yaml"
-                                                      .to_string())));
+  let _ = app.update(Message::YamlSelected(Some("./tests/schema.yaml".to_string())));
   assert!(true);
 }
 

@@ -52,8 +52,7 @@ mod tests
       extract_fields(&schema, "", &mut fields);
       let headers = Vec::new();
       let mut invalids = vec![];
-      let hmap =
-        map_fields_to_columns(&fields, &headers, &mut invalids);
+      let hmap = map_fields_to_columns(&fields, &headers, &mut invalids);
       assert_eq!(hmap["organization.sbu"], 0usize);
       assert_eq!(hmap["organization.product"], 1usize);
       assert_eq!(hmap["date"], 2usize);
@@ -90,8 +89,6 @@ mod tests
                headers.iter()
                       .position(|h| h.as_str() == "2024-10-11")
                       .unwrap());
-    assert!(headers.iter()
-                   .position(|h| h.as_str() == "312")
-                   .is_none());
+    assert!(!headers.iter().any(|h| h.as_str() == "312"));
   }
 }

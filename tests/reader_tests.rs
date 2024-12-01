@@ -9,9 +9,7 @@ mod tests
     let file_path = "./tests/fruit_test.xlsx";
     let mut range: Vec<Vec<String>> = vec![];
 
-    let meta =
-      read_excel(file_path, &mut range).expect("Failed to read \
-                                                Excel file");
+    let meta = read_excel(file_path, &mut range).expect("Failed to read Excel file");
 
     assert_eq!(meta.1, 5);
     assert_eq!(meta.2, 5);

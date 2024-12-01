@@ -3,8 +3,7 @@ use std::error::Error;
 use std::fs::read_to_string;
 use yaml_rust2::{Yaml, YamlLoader};
 
-pub fn parse_yaml_schema(file_path: &str)
-                         -> Result<Yaml, Box<dyn Error>>
+pub fn parse_yaml_schema(file_path: &str) -> Result<Yaml, Box<dyn Error>>
 {
   let contents = read_to_string(file_path)?;
   let docs = YamlLoader::load_from_str(&contents)?;
@@ -28,11 +27,11 @@ pub fn extract_fields(yaml: &Yaml,
           extract_fields(value, &new_prefix, fields);
         }
       }
-    }
+    },
     Yaml::String(_) => {
       fields.push(prefix.to_string());
-    }
-    _ => {}
+    },
+    _ => {},
   }
 }
 
@@ -51,9 +50,7 @@ pub fn map_fields_to_columns(fields: &[String],
   } else {
     for field in fields {
       let field_name = field.split('.').last().unwrap_or(field);
-      if let Some(index) =
-        headers.iter().position(|h| h == field_name)
-      {
+      if let Some(index) = headers.iter().position(|h| h == field_name) {
         mapping.insert(field.clone(), index);
       } else {
         invalid_fields.push(field.clone())

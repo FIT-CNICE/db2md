@@ -3,7 +3,6 @@ pub mod md_gen;
 pub mod reader;
 pub mod yaml_parser;
 
-use smol;
 use smol::fs as async_fs;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -29,8 +28,7 @@ pub async fn write_row_to_md(row: &Vec<String>,
     }
   }
 
-  let filename =
-    format!("{}/{}-{:03}.md", output_dir, md_prefix, file_idx);
+  let filename = format!("{}/{}-{:03}.md", output_dir, md_prefix, file_idx);
 
   // write md file
   if let Err(e) = async_fs::write(&filename, md_string).await {
@@ -77,40 +75,35 @@ pub fn process_data(excel_path: &str,
 
   let mut invalids = vec![];
 
-  let field_map = yaml_parser::map_fields_to_columns(&fields,
-                                                     headers,
-                                                     &mut invalids);
+  let field_map = yaml_parser::map_fields_to_columns(&fields, headers, &mut invalids);
 
   // Process data rows concurrently
   let processed_rows = Arc::new(Mutex::new(0));
-  let threads: Vec<_> =
-    rows.into_iter()
-        .enumerate()
-        .map(|(idx, row)| {
-          let field_map = field_map.clone();
-          let md_prefix = md_prefix.clone();
-          let processed_rows = Arc::clone(&processed_rows);
-          let progress = Arc::clone(progress);
-          thread::spawn(move || {
-            // generate md string
-            let mut md_string = String::new();
-            md_gen::generate_markdown(&row,
-                                      &field_map,
-                                      &mut md_string);
-            // generate filename
-            let filename = format!("{}-{:03}.md", md_prefix, idx);
-            // write md file
-            if let Err(e) = std::fs::write(&filename, md_string) {
-              eprintln!("Failed to write file '{}': {}", filename, e);
-            }
-            // update progress
-            let mut count = processed_rows.lock().unwrap();
-            *count += 1;
-            let mut progress_val = progress.lock().unwrap();
-            *progress_val = *count as f32 / tot_row_num * 100.0;
-          })
-        })
-        .collect();
+  let threads: Vec<_> = rows.into_iter()
+                            .enumerate()
+                            .map(|(idx, row)| {
+                              let field_map = field_map.clone();
+                              let md_prefix = md_prefix.clone();
+                              let processed_rows = Arc::clone(&processed_rows);
+                              let progress = Arc::clone(progress);
+                              thread::spawn(move || {
+                                // generate md string
+                                let mut md_string = String::new();
+                                md_gen::generate_markdown(&row, &field_map, &mut md_string);
+                                // generate filename
+                                let filename = format!("{}-{:03}.md", md_prefix, idx);
+                                // write md file
+                                if let Err(e) = std::fs::write(&filename, md_string) {
+                                  eprintln!("Failed to write file '{}': {}", filename, e);
+                                }
+                                // update progress
+                                let mut count = processed_rows.lock().unwrap();
+                                *count += 1;
+                                let mut progress_val = progress.lock().unwrap();
+                                *progress_val = *count as f32 / tot_row_num * 100.0;
+                              })
+                            })
+                            .collect();
 
   // Wait for all threads to complete
   for handle in threads {
@@ -149,8 +142,7 @@ mod tests
 
     // Verify results
     assert_eq!(result, 1);
-    let expected_file =
-      format!("{}/{}-{:03}.md", test_dir, test_prefix, 1);
+    let expected_file = format!("{}/{}-{:03}.md", test_dir, test_prefix, 1);
     assert!(Path::new(&expected_file).exists());
 
     // Cleanup
@@ -217,13 +209,7 @@ mod tests
         let row = row.clone();
         let field_map = field_map.clone();
         let dir = test_dir.to_string();
-        handles.push(smol::spawn(async move {
-                       write_row_to_md(&row,
-                                       &field_map,
-                                       i,
-                                       &dir,
-                                       &"test".to_string()).await
-                     }));
+        handles.push(smol::spawn(async move { write_row_to_md(&row, &field_map, i, &dir, &"test".to_string()).await }));
       }
 
       let mut results = Vec::new();
