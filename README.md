@@ -1,6 +1,10 @@
 # db2md
 
-db2md is a tool for converting Excel spreadsheets to Markdown files based on a YAML schema.
+db2md is a tool for converting any filetypes exported from DB (SQLite, PostgreSQL, MongoDB, XLSX) to Markdown files based on a YAML schema. db2md should be able to send out HTTP requests to LLM servers using either one of the following crates
+
+- `reqwest`
+- `url`
+
 
 ## Release Notes
 

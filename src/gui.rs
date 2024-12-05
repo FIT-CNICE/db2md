@@ -211,10 +211,11 @@ impl Db2MdApp
 
         // Convert Vec of futures into a stream and process with
         // Task::run
-        let stream = smol::stream::iter(all_rows).map(|future| future.boxed())
-                                                 .buffer_unordered(8) // Process up to 8 futures
-                                                 // concurrently
-                                                 .boxed();
+        let stream = smol::stream::iter(all_rows).map(|future| future.boxed()) // box it for thread
+                                                 // ownership
+                                                 .buffer_unordered(8); // Process up to 8 futures
+                                                                       // concurrently
+                                                                       // .boxed();
 
         Task::run(stream, Message::UpdateProgress)
       },
